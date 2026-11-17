@@ -150,6 +150,8 @@ git push origin v1.3.0
 
 CI checks that the tag matches the version, builds and tests the application,
 then publishes the portable executable, ZIP, manifest and checksums.
+An existing version tag can also be published from **Actions → Tests → Run workflow**
+by entering that tag in `release_tag`; an empty value runs tests without publishing.
 
 ## License
 

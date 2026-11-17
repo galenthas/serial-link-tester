@@ -1,0 +1,43 @@
+SERIAL LINK TESTER 1.3 — WINDOWS
+
+1. Open SerialLinkTester.exe. No application installation is required.
+2. Choose Try demo to explore the interface without connecting hardware.
+3. Connect your serial adapter and choose Refresh ports.
+4. Two ports / bidirectional is selected by default. Choose distinct Port A and Port B.
+5. Match the baud rate at both ends. The application uses 8N1 with flow control off.
+6. Connect both TX and RX paths through the link. Select Two ports / one way if needed.
+7. Run Latency and jitter, then Integrity and throughput at your chosen target load.
+8. After the test and final receive window end, choose Export report.
+
+The default response threshold / final receive window is 1000 ms (1 second).
+Duration remains 60 seconds. Increase the receive window for slower links or larger
+packets when needed; packet serialization is part of the measured response time.
+
+WARNINGS AND ERRORS
+Amber Serial warnings name Framing, Break, Overrun, RX overflow and Parity events.
+They do not stop the test. Counts remain visible as test history after reconnecting
+a cable and reset for each new test. Details shows per-type observation counts.
+Red TEST STOPPED messages identify errors that ended the test, such as failed I/O.
+Reports separate test-stopping errors from serial warnings. A packet-format error
+in the Corruption card is different from a UART Framing warning.
+
+SIMULTANEOUS TWO-WAY TEST
+Choose Two ports / bidirectional and select Port A and Port B on the same PC.
+Connect both TX and RX paths between each adapter and its local device.
+Remove any remote TX-to-RX loopback. The complete link must pass both streams
+simultaneously; the application does not arbitrate a half-duplex serial bus.
+The baud rate, payload, duration and timeout are shared settings. Target load
+applies to EACH direction: 100% requests full load A to B AND B to A.
+The overview shows both results. Select A -> B or B -> A for cards and chart.
+Export includes a combined comparison, direction-tagged CSV, and A_to_B / B_to_A
+subfolders containing the individual reports. Stop drains both receive paths.
+
+Reports: report.html, packets.csv, summary.json.
+For one-port round-trip measurement, return the remote serial TX to RX using
+wiring suitable for the electrical interface. A local loopback tests the host path.
+
+Timing includes Windows, adapter buffers, serialization and the link under test.
+Demo results are simulated and clearly marked. Validate your physical setup separately.
+
+Requires Windows 10/11, .NET Framework 4.x and the driver for your serial adapter.
+See USER_GUIDE.html or the Connection guide inside the application.

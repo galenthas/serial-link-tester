@@ -1,0 +1,20 @@
+# Local builds, measurements and workspace-only notes
+/artifacts/
+/fpga/
+/AGENTS.md
+/docs/*
+!/docs/USER_GUIDE.html
+!/docs/QUICK_START.txt
+!/docs/MEASUREMENTS.md
+!/docs/releases/
+!/docs/images/
+
+# Editors and temporary files
+.vs/
+.vscode/
+*.user
+*.suo
+*.tmp
+*.log
+Thumbs.db
+Desktop.ini

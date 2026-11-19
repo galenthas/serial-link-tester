@@ -33,16 +33,21 @@ static class UiTests {
     sealed class TestHost : Form { protected override bool ShowWithoutActivation { get { return true; } } }
     sealed class Fixture : IDisposable {
         readonly TestHost host=new TestHost();
+        // A child panel can exercise windows wider than the CI runner's virtual desktop.
+        readonly Panel canvas=new Panel { Size=new Size(1200,810) };
         public readonly MainForm Form=new MainForm(c => new TestSession(c, config => TestDuplexEndpoint.Pair(false,false)));
         public readonly RichTextBox Details;
         public readonly List<string> Events;
-        public void ResizeWindow(Size size) { host.ClientSize=size;Pump(30); }
+        public void ResizeWindow(Size size) {
+            canvas.Size=size;Pump(30);
+            Check(Form.ClientSize==size,"requested client size "+size+", actual "+Form.ClientSize);
+        }
         public Fixture() {
             Field<System.Windows.Forms.Timer>(Form,"timer").Stop();
             host.StartPosition=FormStartPosition.Manual;host.Location=new Point(-30000,-30000);
             host.ClientSize=new Size(1200,810);host.ShowInTaskbar=false;
             Form.TopLevel=false;Form.FormBorderStyle=FormBorderStyle.None;Form.Dock=DockStyle.Fill;
-            host.Controls.Add(Form);Form.Show();host.Show();
+            host.Controls.Add(canvas);canvas.Controls.Add(Form);Form.Show();host.Show();
             Details=Field<RichTextBox>(Form,"details");Events=Field<List<string>>(Form,"events");
             TestSession session=new TestSession(new TestConfig { TxPort="COM1",RxPort="COM2" });
             typeof(MainForm).GetField("session",Private).SetValue(Form,session);
@@ -124,7 +129,7 @@ static class UiTests {
                     foreach(Font font in scaled)font.Dispose();
                 }
             }
-            Check(minColumns<maxColumns && maxColumns==3,"card grid did not reflow");
+            Check(minColumns<maxColumns && maxColumns==3,"card grid did not reflow: observed "+minColumns+" to "+maxColumns+" columns");
         });
         Test("Live report keeps the scrolled viewport across repeated updates",delegate(Fixture f) {
             Scroll(f.Details,300);Point before=Position(f.Details);Check(before.Y>0,"not scrolled");

@@ -7,15 +7,18 @@ $appDir = $build.AppDir
 $verification = $build.Verification
 & (Join-Path $verification 'CoreTests.exe') (Join-Path $verification 'test_report') | Tee-Object -FilePath (Join-Path $verification 'core_tests.txt')
 if ($LASTEXITCODE -ne 0) { throw 'Tests failed. Package was not created.' }
-$fileNames = @('SerialLinkTester.exe','USER_GUIDE.html','QUICK_START.txt')
+& (Join-Path $verification 'UiTests.exe') | Tee-Object -FilePath (Join-Path $verification 'ui_tests.txt')
+if ($LASTEXITCODE -ne 0) { throw 'UI tests failed. Package was not created.' }
+$fileNames = @('SerialPortTester.exe','USER_GUIDE.html','QUICK_START.txt')
 if (Test-Path -LiteralPath (Join-Path $appDir 'LICENSE')) { $fileNames += 'LICENSE' }
 $entries = @($fileNames | ForEach-Object {
     $item = Get-Item -LiteralPath (Join-Path $appDir $_)
     [ordered]@{ name=$item.Name; bytes=$item.Length; sha256=(Get-FileHash -LiteralPath $item.FullName -Algorithm SHA256).Hash.ToLowerInvariant() }
 })
 $manifest = [ordered]@{
-    application='Serial Link Tester'; version=$build.AssemblyVersion; release_date=$build.ReleaseDate; platform='Windows'
+    application='Serial Port Tester'; version=$build.AssemblyVersion; release_date=$build.ReleaseDate; platform='Windows'
     automated_test_result=(Get-Content -LiteralPath (Join-Path $verification 'core_tests.txt') -Tail 1)
+    ui_test_result=(Get-Content -LiteralPath (Join-Path $verification 'ui_tests.txt') -Tail 1)
     bidirectional_hardware_validation='Pending; automated transport tests are simulated.'
     files=$entries
 }

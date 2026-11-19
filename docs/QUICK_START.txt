@@ -1,13 +1,12 @@
-SERIAL LINK TESTER 1.3 — WINDOWS
+SERIAL PORT TESTER 1.3 — WINDOWS
 
-1. Open SerialLinkTester.exe. No application installation is required.
-2. Choose Try demo to explore the interface without connecting hardware.
-3. Connect your serial adapter and choose Refresh ports.
-4. Two ports / bidirectional is selected by default. Choose distinct Port A and Port B.
-5. Match the baud rate at both ends. The application uses 8N1 with flow control off.
-6. Connect both TX and RX paths through the link. Select Two ports / one way if needed.
-7. Run Latency and jitter, then Integrity and throughput at your chosen target load.
-8. After the test and final receive window end, choose Export report.
+1. Open SerialPortTester.exe. No application installation is required.
+2. Connect your serial adapter and choose Refresh ports.
+3. Two ports / bidirectional is selected by default. Choose distinct Port A and Port B.
+4. Match the baud rate at both ends. The application uses 8N1 with flow control off.
+5. Connect both TX and RX paths through the link. Select Two ports / one way if needed.
+6. Run Latency and jitter, then Integrity and throughput at your chosen target load.
+7. After the test and final receive window end, choose Export report.
 
 The default response threshold / final receive window is 1000 ms (1 second).
 Duration remains 60 seconds. Increase the receive window for slower links or larger
@@ -37,7 +36,6 @@ For one-port round-trip measurement, return the remote serial TX to RX using
 wiring suitable for the electrical interface. A local loopback tests the host path.
 
 Timing includes Windows, adapter buffers, serialization and the link under test.
-Demo results are simulated and clearly marked. Validate your physical setup separately.
 
 Requires Windows 10/11, .NET Framework 4.x and the driver for your serial adapter.
 See USER_GUIDE.html or the Connection guide inside the application.

@@ -1,4 +1,4 @@
 using System.Reflection;
-[assembly: AssemblyTitle("Serial Link Tester")]
-[assembly: AssemblyDescription("Serial link integrity, throughput and timing diagnostics for Windows")]
-[assembly: AssemblyProduct("Serial Link Tester")]
+[assembly: AssemblyTitle("Serial Port Tester")]
+[assembly: AssemblyDescription("Serial port integrity, throughput and timing diagnostics for Windows")]
+[assembly: AssemblyProduct("Serial Port Tester")]

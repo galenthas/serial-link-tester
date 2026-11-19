@@ -104,7 +104,7 @@ static class CoreTests {
             Check(m.Get().Missing==1,"a failed write response masked another missing packet");
         });
         Test("Repeated start-stop releases software sessions",delegate {
-            for(int i=0;i<4;i++)using(TestEngine e=new TestEngine(new TestConfig { Demo=true,DurationSeconds=60,TimeoutMs=100 })) {
+            for(int i=0;i<4;i++)using(TestEngine e=new TestEngine(new TestConfig { TxPort="COM3",RxPort="COM4",DurationSeconds=60,TimeoutMs=100 },TestPort.WithFaults)) {
                 e.Start();Thread.Sleep(25);e.Abort();Check(e.Wait(2000),"session did not close");Check(e.Measure.Get().Error.Length>0,"abort must be incomplete");
             }
         });
@@ -113,48 +113,48 @@ static class CoreTests {
             Check(thrown,"invalid device unexpectedly accepted");
         });
         Test("Invalid configuration rejected before opening ports",delegate {
-            foreach(TestConfig c in new[]{new TestConfig { TxPort="COM1",RxPort="COM1" },new TestConfig { Demo=true,Baud=0 },new TestConfig { Demo=true,Payload=2049 },new TestConfig { Demo=true,TimeoutMs=0 }}) {
+            foreach(TestConfig c in new[]{new TestConfig { TxPort="COM1",RxPort="COM1" },new TestConfig { TxPort="COM3",RxPort="COM4",Baud=0 },new TestConfig { TxPort="COM3",RxPort="COM4",Payload=2049 },new TestConfig { TxPort="COM3",RxPort="COM4",TimeoutMs=0 }}) {
                 bool thrown=false;try{c.Validate();}catch(ArgumentException){thrown=true;}Check(thrown,"bad config accepted");
             }
         });
         Test("Engine clean end-to-end, fragmented transport, report export",delegate {
-            TestConfig c=new TestConfig { Demo=true,DurationSeconds=1,TimeoutMs=100,Throughput=true,LoadPercent=90 };
-            TestEngine e=new TestEngine(c,delegate(TestConfig x){IPort port=new DemoPort(false);return new IPort[]{port,port};});e.Start();Check(e.Wait(5000),"engine hung");Snapshot s=e.Measure.Get();
+            TestConfig c=new TestConfig { TxPort="COM3",RxPort="COM4",DurationSeconds=1,TimeoutMs=100,Throughput=true,LoadPercent=90 };
+            TestEngine e=new TestEngine(c,delegate(TestConfig x){IPort port=new TestPort(false);return new IPort[]{port,port};});e.Start();Check(e.Wait(5000),"engine hung");Snapshot s=e.Measure.Get();
             Check(e.Done&&s.Error==""&&s.Sent>20&&s.Missing==0&&s.Corrupt==0&&s.Invalid==0&&s.Good==s.Sent&&s.LatencyCount==s.Good,"engine clean path");
             Console.WriteLine("INFO Native Windows pacing: high_resolution="+s.HighResolutionPacing+", completed_frames="+s.Sent+", duration_s="+s.SendSeconds.ToString("0.000",System.Globalization.CultureInfo.InvariantCulture));
             string dir=args.Length>0?args[0]:Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"test_report");Export.Save(dir,e);
-            Check(File.Exists(Path.Combine(dir,"report.html"))&&File.ReadAllText(Path.Combine(dir,"summary.json")).Contains("Demo\":true"),"report/demo marker");
+            Check(File.Exists(Path.Combine(dir,"report.html"))&&File.ReadAllText(Path.Combine(dir,"summary.json")).Contains("Serial Port Tester " + BuildInfo.Version),"report product and version");
             Check(File.ReadAllLines(Path.Combine(dir,"packets.csv")).Length==s.Attempted+1,"CSV completeness");
         });
         Test("Engine detects deterministic losses corruption and repeats",delegate {
-            TestConfig c=new TestConfig { Demo=true,DurationSeconds=1,TimeoutMs=100,Throughput=true,LoadPercent=100 };
-            TestEngine e=new TestEngine(c);e.Start();Check(e.Wait(5000),"fault test hung");Snapshot s=e.Measure.Get();
+            TestConfig c=new TestConfig { TxPort="COM3",RxPort="COM4",DurationSeconds=1,TimeoutMs=100,Throughput=true,LoadPercent=100 };
+            TestEngine e=new TestEngine(c,TestPort.WithFaults);e.Start();Check(e.Wait(5000),"fault test hung");Snapshot s=e.Measure.Get();
             Check(s.Error==""&&s.Missing>0&&s.Corrupt>0&&s.Duplicates>0,"fault counters missing");
             Check(s.Good+s.Corrupt+s.Missing==s.Sent,"partition");
         });
         Test("Stop preserves receive window; abort terminates promptly",delegate {
-            TestConfig c=new TestConfig { Demo=true,DurationSeconds=60,TimeoutMs=300,Throughput=false };
-            TestEngine e=new TestEngine(c);e.Start();Thread.Sleep(80);Stopwatch sw=Stopwatch.StartNew();e.Stop();Check(e.Wait(3000),"stop hung");Check(sw.ElapsedMilliseconds>=250,"receive window skipped");
-            TestEngine a=new TestEngine(c);a.Start();Thread.Sleep(40);a.Abort();Check(a.Wait(2000)&&a.Done,"abort hung");
+            TestConfig c=new TestConfig { TxPort="COM3",RxPort="COM4",DurationSeconds=60,TimeoutMs=300,Throughput=false };
+            TestEngine e=new TestEngine(c,TestPort.WithFaults);e.Start();Thread.Sleep(80);Stopwatch sw=Stopwatch.StartNew();e.Stop();Check(e.Wait(3000),"stop hung");Check(sw.ElapsedMilliseconds>=250,"receive window skipped");
+            TestEngine a=new TestEngine(c,TestPort.WithFaults);a.Start();Thread.Sleep(40);a.Abort();Check(a.Wait(2000)&&a.Done,"abort hung");
         });
         Test("Open failure becomes a visible completed error",delegate {
-            TestEngine e=new TestEngine(new TestConfig { Demo=true },delegate(TestConfig c){throw new IOException("expected open failure");});e.Start();Check(e.Wait(2000),"open failure hung");Check(e.Measure.Get().Error=="expected open failure"&&e.Done,"error propagation");
+            TestEngine e=new TestEngine(new TestConfig { TxPort="COM3",RxPort="COM4" },delegate(TestConfig c){throw new IOException("expected open failure");});e.Start();Check(e.Wait(2000),"open failure hung");Check(e.Measure.Get().Error=="expected open failure"&&e.Done,"error propagation");
         });
         Test("Duplex configuration rejects loopback and identical ports",delegate {
-            foreach(TestConfig c in new[]{new TestConfig { Demo=true,Bidirectional=true,Loopback=true },new TestConfig { Bidirectional=true,TxPort="COM3",RxPort="COM3" }}) {
+            foreach(TestConfig c in new[]{new TestConfig { TxPort="COM3",RxPort="COM4",Bidirectional=true,Loopback=true },new TestConfig { Bidirectional=true,TxPort="COM3",RxPort="COM3" }}) {
                 bool rejected=false;try{new TestSession(c);}catch(ArgumentException){rejected=true;}Check(rejected,"unsafe duplex setup accepted");
             }
         });
         Test("Direction leases cancel only their own operation and do not own handles",delegate {
-            IDuplexPort[] pair=DuplexDemoEndpoint.Pair(false,false);TrackedPort p=new TrackedPort(pair[0]);
+            IDuplexPort[] pair=TestDuplexEndpoint.Pair(false,false);TrackedPort p=new TrackedPort(pair[0]);
             DirectionPort receive=new DirectionPort(p,true),transmit=new DirectionPort(p,false);
             receive.Cancel();receive.Dispose();Check(p.ReadCancels==1&&p.WriteCancels==0&&p.Disposals==0,"RX cancellation affected TX or lifetime");
             transmit.Cancel();transmit.Dispose();Check(p.ReadCancels==1&&p.WriteCancels==1&&p.Disposals==0,"TX cancellation affected RX or lifetime");p.Dispose();pair[1].Dispose();
         });
         Test("Duplex concurrent clean streams open once, overlap and export independently",delegate {
-            TestConfig c=new TestConfig { Demo=true,Bidirectional=true,TxPort="COM3",RxPort="COM4",DurationSeconds=1,TimeoutMs=150,Throughput=true,LoadPercent=90,Note="<test & conditions>" };
+            TestConfig c=new TestConfig { Bidirectional=true,TxPort="COM3",RxPort="COM4",DurationSeconds=1,TimeoutMs=150,Throughput=true,LoadPercent=90,Note="<test & conditions>" };
             int opens=0;TrackedPort a=null,b=null;
-            using(TestSession session=new TestSession(c,delegate(TestConfig x) { opens++;IDuplexPort[] pair=DuplexDemoEndpoint.Pair(false,false);a=new TrackedPort(pair[0]);b=new TrackedPort(pair[1]);return new IDuplexPort[]{a,b}; })) {
+            using(TestSession session=new TestSession(c,delegate(TestConfig x) { opens++;IDuplexPort[] pair=TestDuplexEndpoint.Pair(false,false);a=new TrackedPort(pair[0]);b=new TrackedPort(pair[1]);return new IDuplexPort[]{a,b}; })) {
                 session.Start();Check(session.Wait(5000),"duplex hung");Snapshot f=session.Forward.Measure.Get(),r=session.Reverse.Measure.Get();
                 Check(opens==1&&a.Disposals==1&&b.Disposals==1,"physical handles not shared/closed exactly once");
                 Check(f.RunId!=r.RunId&&session.Reverse.Config.TxPort=="COM4"&&session.Reverse.Config.RxPort=="COM3","direction identity");
@@ -166,31 +166,31 @@ static class CoreTests {
                 Check(rows.Count(x=>x.StartsWith("A_to_B,COM3,COM4,"))==f.Attempted&&rows.Count(x=>x.StartsWith("B_to_A,COM4,COM3,"))==r.Attempted,"CSV direction/ports mixed");
                 string json=File.ReadAllText(Path.Combine(dir,"summary.json")),html=File.ReadAllText(Path.Combine(dir,"report.html"));
                 Check(json.Contains(f.RunId)&&json.Contains(r.RunId)&&json.Contains("\"Bidirectional\":true"),"JSON omitted a direction/config");
-                Check(html.Contains("SIMULATED")&&html.Contains("90% per direction")&&html.Contains("&lt;test &amp; conditions&gt;")&&html.Contains("B_to_A/report.html"),"comparison report scope/link/escaping");
+                Check(html.Contains("Serial Port Tester")&&html.Contains("90% per direction")&&html.Contains("&lt;test &amp; conditions&gt;")&&html.Contains("B_to_A/report.html"),"comparison report scope/link/escaping");
                 Check(File.Exists(Path.Combine(dir,"A_to_B","packets.csv"))&&File.Exists(Path.Combine(dir,"B_to_A","summary.json")),"direction reports absent");
             }
         });
         Test("Duplex asymmetric corruption and loss never contaminate clean direction",delegate {
-            using(TestSession session=new TestSession(new TestConfig { Demo=true,Bidirectional=true,DurationSeconds=1,TimeoutMs=150,Throughput=true,LoadPercent=100 },delegate(TestConfig c){return DuplexDemoEndpoint.Pair(false,true);})) {
+            using(TestSession session=new TestSession(new TestConfig { TxPort="COM3",RxPort="COM4",Bidirectional=true,DurationSeconds=1,TimeoutMs=150,Throughput=true,LoadPercent=100 },delegate(TestConfig c){return TestDuplexEndpoint.Pair(false,true);})) {
                 session.Start();Check(session.Wait(5000),"asymmetric test hung");Snapshot f=session.Forward.Measure.Get(),r=session.Reverse.Measure.Get();
                 Check(f.Good==f.Sent&&f.Missing==0&&f.Corrupt==0&&f.Invalid==0&&f.Foreign==0,"reverse faults contaminated forward");
                 Check(r.Missing>0&&r.Corrupt>0&&r.Duplicates>0&&r.Foreign==0&&r.Good+r.Corrupt+r.Missing==r.Sent,"reverse fault classification");
             }
         });
         Test("Duplex latency probes progress independently when reverse path is absent",delegate {
-            using(TestSession session=new TestSession(new TestConfig { Demo=true,Bidirectional=true,DurationSeconds=1,TimeoutMs=300 },delegate(TestConfig c){IDuplexPort[] pair=DuplexDemoEndpoint.Pair(false,false);return new IDuplexPort[]{pair[0],new TrackedPort(pair[1]) { DropWrites=true }};})) {
+            using(TestSession session=new TestSession(new TestConfig { TxPort="COM3",RxPort="COM4",Bidirectional=true,DurationSeconds=1,TimeoutMs=300 },delegate(TestConfig c){IDuplexPort[] pair=TestDuplexEndpoint.Pair(false,false);return new IDuplexPort[]{pair[0],new TrackedPort(pair[1]) { DropWrites=true }};})) {
                 session.Start();Check(session.Wait(5000),"missing direction blocked session");Snapshot f=session.Forward.Measure.Get(),r=session.Reverse.Measure.Get();
                 Check(f.Good>10&&f.Good==f.Sent&&f.Missing==0,"reverse timeout stalled forward");
                 Check(r.Sent>0&&r.Good==0&&r.Missing==r.Sent&&r.Error=="","absent reverse path not reported as loss");
             }
         });
         Test("Duplex Stop drains both directions and Abort cancels blocked writes safely",delegate {
-            using(TestSession session=new TestSession(new TestConfig { Demo=true,Bidirectional=true,DurationSeconds=60,TimeoutMs=300 })) {
+            using(TestSession session=new TestSession(new TestConfig { TxPort="COM3",RxPort="COM4",Bidirectional=true,DurationSeconds=60,TimeoutMs=300 },c => TestDuplexEndpoint.Pair(false,false))) {
                 session.Start();Thread.Sleep(100);Stopwatch sw=Stopwatch.StartNew();session.Stop();Check(session.Wait(4000),"duplex stop hung");
                 Check(sw.ElapsedMilliseconds>=250&&session.Forward.Measure.Get().Error==""&&session.Reverse.Measure.Get().Error=="","stop skipped drain or marked abort");
             }
             TrackedPort a=null,b=null;
-            using(TestSession session=new TestSession(new TestConfig { Demo=true,Bidirectional=true,DurationSeconds=60,TimeoutMs=300 },delegate(TestConfig c){IDuplexPort[] pair=DuplexDemoEndpoint.Pair(false,false);a=new TrackedPort(pair[0]) { BlockWrites=true };b=new TrackedPort(pair[1]) { BlockWrites=true };return new IDuplexPort[]{a,b};})) {
+            using(TestSession session=new TestSession(new TestConfig { TxPort="COM3",RxPort="COM4",Bidirectional=true,DurationSeconds=60,TimeoutMs=300 },delegate(TestConfig c){IDuplexPort[] pair=TestDuplexEndpoint.Pair(false,false);a=new TrackedPort(pair[0]) { BlockWrites=true };b=new TrackedPort(pair[1]) { BlockWrites=true };return new IDuplexPort[]{a,b};})) {
                 session.Start();Stopwatch started=Stopwatch.StartNew();while((a==null||b==null)&&started.ElapsedMilliseconds<2000)Thread.Sleep(5);
                 Check(a!=null&&b!=null&&a.WriteEntered.WaitOne(2000)&&b.WriteEntered.WaitOne(2000),"writes did not start");session.Abort();Check(session.Wait(3000),"blocked I/O not canceled");
                 Check(a.Disposals==1&&b.Disposals==1&&a.Active==0&&b.Active==0,"unsafe endpoint cleanup");
@@ -198,20 +198,20 @@ static class CoreTests {
             }
         });
         Test("Duplex port/write failure finishes both directions and releases endpoints",delegate {
-            using(TestSession session=new TestSession(new TestConfig { Demo=true,Bidirectional=true },delegate(TestConfig c){throw new IOException("expected duplex open failure");})) {
+            using(TestSession session=new TestSession(new TestConfig { TxPort="COM3",RxPort="COM4",Bidirectional=true },delegate(TestConfig c){throw new IOException("expected duplex open failure");})) {
                 session.Start();Check(session.Wait(2000)&&session.Forward.Done&&session.Reverse.Done,"open failure hung");Check(session.Forward.Measure.Get().Error=="expected duplex open failure"&&session.Reverse.Measure.HasError,"open error hidden");
             }
             TrackedPort a=null,b=null;
-            using(TestSession session=new TestSession(new TestConfig { Demo=true,Bidirectional=true,DurationSeconds=60,TimeoutMs=300 },delegate(TestConfig c){IDuplexPort[] pair=DuplexDemoEndpoint.Pair(false,false);a=new TrackedPort(pair[0]);b=new TrackedPort(pair[1]) { FailWrites=true };return new IDuplexPort[]{a,b};})) {
+            using(TestSession session=new TestSession(new TestConfig { TxPort="COM3",RxPort="COM4",Bidirectional=true,DurationSeconds=60,TimeoutMs=300 },delegate(TestConfig c){IDuplexPort[] pair=TestDuplexEndpoint.Pair(false,false);a=new TrackedPort(pair[0]);b=new TrackedPort(pair[1]) { FailWrites=true };return new IDuplexPort[]{a,b};})) {
                 session.Start();Check(session.Wait(3000),"write failure did not stop peer");Check(session.Reverse.Measure.Get().Error=="injected reverse write failure"&&session.Forward.Measure.HasError,"direction error not preserved");
                 Check(a.Disposals==1&&b.Disposals==1,"failure leaked shared endpoints");
             }
         });
         Test("Single-direction session retains legacy behavior",delegate {
-            using(TestSession session=new TestSession(new TestConfig { Demo=true,Bidirectional=false,DurationSeconds=1,TimeoutMs=100 })) { session.Start();Check(session.Wait(4000)&&session.Reverse==null&&session.Forward.Measure.Get().Good>5&&!session.Forward.Measure.HasError,"one-way regression"); }
+            using(TestSession session=new TestSession(new TestConfig { TxPort="COM3",RxPort="COM4",Bidirectional=false,DurationSeconds=1,TimeoutMs=100 },TestPort.WithFaults)) { session.Start();Check(session.Wait(4000)&&session.Reverse==null&&session.Forward.Measure.Get().Good>5&&!session.Forward.Measure.HasError,"one-way regression"); }
         });
         Test("Startup defaults run both directions and preserve a one-second final window",delegate {
-            using(TestSession session=new TestSession(new TestConfig { Demo=true,DurationSeconds=1 },delegate(TestConfig c){return DuplexDemoEndpoint.Pair(false,false);})) {
+            using(TestSession session=new TestSession(new TestConfig { TxPort="COM3",RxPort="COM4",DurationSeconds=1 },delegate(TestConfig c){return TestDuplexEndpoint.Pair(false,false);})) {
                 session.Start();Check(session.Wait(5000)&&session.Reverse!=null,"default setup is not bidirectional");
                 foreach(TestEngine engine in new[]{session.Forward,session.Reverse}) {
                     Snapshot s=engine.Measure.Get();Check(s.Good>5&&s.Good==s.Sent&&s.Error=="","default stream did not finish");
@@ -231,7 +231,7 @@ static class CoreTests {
             Measurement next=new Measurement(new TestConfig());Check(next.Get().PcErrorEvents==0&&next.Get().SerialWarningTypes=="None","warnings leaked into a new test");
         });
         Test("Framing and break warnings allow both directions to finish and export amber diagnostics",delegate {
-            using(TestSession session=new TestSession(new TestConfig { Demo=true,DurationSeconds=1,TimeoutMs=100,Throughput=true },delegate(TestConfig c){IDuplexPort[] pair=DuplexDemoEndpoint.Pair(false,false);return new IDuplexPort[]{pair[0],new TrackedPort(pair[1]) { WarningMask=0x18 }};})) {
+            using(TestSession session=new TestSession(new TestConfig { TxPort="COM3",RxPort="COM4",DurationSeconds=1,TimeoutMs=100,Throughput=true },delegate(TestConfig c){IDuplexPort[] pair=TestDuplexEndpoint.Pair(false,false);return new IDuplexPort[]{pair[0],new TrackedPort(pair[1]) { WarningMask=0x18 }};})) {
                 session.Start();Check(session.Wait(5000),"warning-only session hung");
                 foreach(TestEngine engine in new[]{session.Forward,session.Reverse}) { Snapshot s=engine.Measure.Get();Check(s.Good==s.Sent&&s.Sent>30&&s.Missing==0&&s.Error==""&&s.Phase=="Complete","serial warning aborted or damaged the stream"); }
                 Check((session.Forward.Measure.Get().PcErrorMask|session.Reverse.Measure.Get().PcErrorMask)==0x18,"warnings missing from session");
@@ -242,7 +242,7 @@ static class CoreTests {
             }
         });
         Test("A write failure remains distinct from previously recorded serial warnings",delegate {
-            using(TestEngine engine=new TestEngine(new TestConfig { Demo=true,Bidirectional=false,DurationSeconds=60,TimeoutMs=100,Throughput=true },delegate(TestConfig c){IPort port=new TrackedPort(new DemoPort(false)) { WarningMask=0x18,FailAtWrite=2 };return new[]{port,port};})) {
+            using(TestEngine engine=new TestEngine(new TestConfig { TxPort="COM3",RxPort="COM4",Bidirectional=false,DurationSeconds=60,TimeoutMs=100,Throughput=true },delegate(TestConfig c){IPort port=new TrackedPort(new TestPort(false)) { WarningMask=0x18,FailAtWrite=2 };return new[]{port,port};})) {
                 engine.Start();Check(engine.Wait(3000),"fatal test hung");Snapshot s=engine.Measure.Get();
                 Check(s.Error=="injected reverse write failure"&&s.PcErrorMask==0x18&&s.Phase=="Finished with errors","fatal error or warning history lost");
                 string dir=Path.Combine(args.Length>0?args[0]:AppDomain.CurrentDomain.BaseDirectory,"fatal_with_warnings");Export.Save(dir,engine);

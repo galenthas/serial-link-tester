@@ -7,7 +7,7 @@ namespace SerialRf {
         public const int DefaultTimeoutMs=1000;
         public string TxPort = "", RxPort = "", Setup = "Two ports / bidirectional", Mode = "Latency and jitter", Note = "";
         public int Baud = 115200, Payload = 64, DurationSeconds = 60, LoadPercent = 90, TimeoutMs = DefaultTimeoutMs;
-        public bool Loopback, Throughput, Demo;
+        public bool Loopback, Throughput;
         public bool Bidirectional=true;
         public TestConfig Direction(bool reverse) {
             TestConfig c = (TestConfig)MemberwiseClone();
@@ -23,11 +23,9 @@ namespace SerialRf {
             if (Payload < 1 || Payload > Protocol.MaxPayload) throw new ArgumentException("Payload must be between 1 and 2048 bytes.");
             if (DurationSeconds < 1 || DurationSeconds > 3600) throw new ArgumentException("Duration must be between 1 and 3600 seconds.");
             if (LoadPercent < 1 || LoadPercent > 100 || TimeoutMs < 100 || TimeoutMs > 60000) throw new ArgumentException("Invalid load or receive timeout.");
-            if (!Demo) {
-                if (!System.Text.RegularExpressions.Regex.IsMatch(TxPort, "^COM[0-9]+$", System.Text.RegularExpressions.RegexOptions.IgnoreCase)) throw new ArgumentException("Select a transmit COM port.");
-                if (!Loopback && !System.Text.RegularExpressions.Regex.IsMatch(RxPort, "^COM[0-9]+$", System.Text.RegularExpressions.RegexOptions.IgnoreCase)) throw new ArgumentException("Select a receive COM port.");
-                if (!Loopback && TxPort.Equals(RxPort, StringComparison.OrdinalIgnoreCase)) throw new ArgumentException("Choose different COM ports for a two-port test, or select the one-port loopback setup.");
-            }
+            if (!System.Text.RegularExpressions.Regex.IsMatch(TxPort, "^COM[0-9]+$", System.Text.RegularExpressions.RegexOptions.IgnoreCase)) throw new ArgumentException("Select a transmit COM port.");
+            if (!Loopback && !System.Text.RegularExpressions.Regex.IsMatch(RxPort, "^COM[0-9]+$", System.Text.RegularExpressions.RegexOptions.IgnoreCase)) throw new ArgumentException("Select a receive COM port.");
+            if (!Loopback && TxPort.Equals(RxPort, StringComparison.OrdinalIgnoreCase)) throw new ArgumentException("Choose different COM ports for a two-port test, or select the one-port loopback setup.");
         }
     }
     public struct PacketRecord {
@@ -37,7 +35,7 @@ namespace SerialRf {
     }
     public sealed class Snapshot {
         public string Phase, Error, RunId, StartedUtc;
-        public bool Done, Demo;
+        public bool Done;
         public bool HighResolutionPacing;
         public long Attempted, Sent, Received, Good, Corrupt, Invalid, Duplicates, Reordered, Foreign, Late, Missing, Overdue;
         public long TxWireBytes, RxWireBytes, GoodPayloadBytes, PcErrorEvents;
@@ -149,7 +147,7 @@ namespace SerialRf {
                 double elapsed = Seconds(now - Started);
                 double receiveSpan = firstRx == 0 ? 0 : Seconds(lastRx - firstRx);
                 return new Snapshot {
-                    Phase = phase, Error = error, RunId = RunId.ToString(), StartedUtc = utc.ToString("o"), Done = done, Demo = config.Demo, HighResolutionPacing = HighResolutionPacing,
+                    Phase = phase, Error = error, RunId = RunId.ToString(), StartedUtc = utc.ToString("o"), Done = done, HighResolutionPacing = HighResolutionPacing,
                     Attempted = records.Count, Sent = sent, Received = received, Good = good, Corrupt = corrupt, Invalid = invalid, Duplicates = duplicate, Reordered = reorder, Foreign = foreign, Late = late,
                     Missing = Math.Max(0, sent - receivedCompleted), Overdue = overdue, TxWireBytes = txBytes, RxWireBytes = rxBytes, GoodPayloadBytes = payloadBytes,
                     PcErrorEvents = errors, PcErrorMask = errorMask, MaxRxQueue = maxRxQueue, MaxTxQueue = maxTxQueue,

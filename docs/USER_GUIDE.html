@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark">
-<title>Serial Link Tester — User guide</title>
+<title>Serial Port Tester — User guide</title>
 <style>body{font:16px/1.65 'Segoe UI',Arial;background:#0d121a;color:#e9f0f7;max-width:1020px;margin:36px auto;padding:0 24px}header,section{background:#151d28;border:1px solid #2f3f50;padding:28px;border-radius:12px;margin-bottom:20px}header small{color:#43d8be;letter-spacing:2px}h1{font-size:36px;margin:6px 0}h2{margin-top:0}p,li{color:#b8c7d6}li{margin:10px 0}b,strong,th{color:#e9f0f7}code{background:#1d2836;padding:4px 7px;border-radius:4px;color:#43d8be}table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:12px;border-bottom:1px solid #2f3f50;vertical-align:top}td:first-child{min-width:130px}.route{background:#183b39;color:#8cebd9;padding:18px;border-radius:8px}.note{background:#382e1d;color:#f6c66b;padding:16px;border-radius:8px}@media(max-width:640px){body{padding:0 12px}header,section{padding:18px}h1{font-size:28px}}@media print{body,header,section,.route,.note{background:white;color:black}p,li,b,strong,th{color:black}}</style>
-<header><small>SERIAL DIAGNOSTICS · VERSION 1.3</small><h1>Serial Link Tester</h1><p>Measure integrity, throughput and timing across a serial connection, in one direction or both at once.</p></header>
+<header><small>SERIAL DIAGNOSTICS · VERSION 1.3</small><h1>Serial Port Tester</h1><p>Measure integrity, throughput and timing across a serial connection, in one direction or both at once.</p></header>
 <section><h2>Your first test</h2><ol>
-<li>Open <b>SerialLinkTester.exe</b>. Use <b>Try demo</b> to explore the interface without hardware. Demo mode never opens a COM port.</li>
+<li>Open <b>SerialPortTester.exe</b>.</li>
 <li>Connect your serial adapter and install its Windows driver if needed. Close terminal programs that are using the test ports. Select <b>Refresh ports</b>.</li>
 <li><b>Two ports / bidirectional</b> is selected by default. Select different Port A and Port B on the same PC and connect both TX/RX paths. Choose <b>Two ports / one way</b> if you only need one direction.</li>
 <li>Match the baud rate and electrical interface at both ends. The application uses <b>8 data bits, no parity, 1 stop bit, flow control off</b>.</li>
@@ -38,4 +38,4 @@
 <p>Compare driver settings using a direct cable. Evaluate dropped data and overruns as well as timing. Do not reduce buffering blindly: a smaller buffer can increase loss. The test does not repeatedly purge receive or transmit queues.</p>
 <p>The baud box accepts listed or custom numeric values from 1200 to 1000000. Support and actual baud accuracy depend on both endpoints; verify any nonstandard rate with your hardware documentation.</p></section>
 <section><h2>Limits and requirements</h2><p>Windows 10/11, .NET Framework 4.x and the driver for your adapter. No application installation or administrator launch is required. Payload: 1–2048 bytes. Duration: 1–3600 seconds. Receive window: 100–60000 ms. Session limit: one million packet records per direction.</p>
-<p>This version uses one PC and does not synchronize separate PCs. It tests a transparent binary path or loopback, rather than acting as a general terminal. Demo results are simulated and clearly labeled. Automated tests do not replace physical hardware validation.</p></section></html>
+<p>This version uses one PC and does not synchronize separate PCs. It tests a transparent binary path or loopback, rather than acting as a general terminal. Automated tests do not replace physical hardware validation.</p></section></html>

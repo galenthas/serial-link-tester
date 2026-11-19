@@ -5,7 +5,7 @@ if ($metadata.version -notmatch '^\d+\.\d+\.\d+$') { throw 'version.json must co
 $parsedVersion = [version]$metadata.version
 if ($parsedVersion.Major -gt 65534 -or $parsedVersion.Minor -gt 65534 -or $parsedVersion.Build -gt 65534) { throw 'Version components exceed assembly limits.' }
 $releaseDate = [datetime]::ParseExact($metadata.releaseDate, 'yyyy-MM-dd', [Globalization.CultureInfo]::InvariantCulture)
-$folderName = $releaseDate.ToString('yyyyMMdd') + '_serial_link_tester_v' + $metadata.version.Replace('.', '_')
+$folderName = $releaseDate.ToString('yyyyMMdd') + '_serial_port_tester_v' + $metadata.version.Replace('.', '_')
 $releaseRoot = Join-Path $projectRoot ('artifacts\' + $folderName)
 [pscustomobject]@{
     ProjectRoot=$projectRoot
@@ -15,5 +15,5 @@ $releaseRoot = Join-Path $projectRoot ('artifacts\' + $folderName)
     ReleaseRoot=$releaseRoot
     AppDir=(Join-Path $releaseRoot 'app')
     Verification=(Join-Path $releaseRoot 'verification')
-    ZipFile=(Join-Path $releaseRoot ('SerialLinkTester_v' + $metadata.version + '_Windows.zip'))
+    ZipFile=(Join-Path $releaseRoot ('SerialPortTester_v' + $metadata.version + '_Windows.zip'))
 }

@@ -16,22 +16,6 @@ namespace SerialRf {
         public void Dispose() { } // Session releases the handle after both engines have joined.
     }
 
-    public sealed class DuplexDemoEndpoint : IDuplexPort {
-        readonly DemoPort incoming,outgoing;
-        DuplexDemoEndpoint(DemoPort incoming,DemoPort outgoing) { this.incoming=incoming;this.outgoing=outgoing; }
-        public static IDuplexPort[] Pair(bool faultsForward,bool faultsReverse) {
-            DemoPort ab=new DemoPort(faultsForward),ba=new DemoPort(faultsReverse);
-            return new IDuplexPort[]{new DuplexDemoEndpoint(ba,ab),new DuplexDemoEndpoint(ab,ba)};
-        }
-        public int Read(byte[] buffer) { return incoming.Read(buffer); }
-        public void Write(byte[] buffer) { outgoing.Write(buffer); }
-        public uint Errors(out uint input,out uint output) { input=output=0;return 0; }
-        public void CancelRead() { incoming.CancelRead(); }
-        public void CancelWrite() { outgoing.CancelWrite(); }
-        public void Cancel() { CancelRead();CancelWrite(); }
-        public void Dispose() { incoming.Dispose(); }
-    }
-
     public sealed class TestSession : IDisposable {
         public readonly TestConfig Config;
         public readonly TestEngine Forward, Reverse;
@@ -47,7 +31,7 @@ namespace SerialRf {
             if(config.Bidirectional) {
                 Forward=new TestEngine(config.Direction(false),delegate(TestConfig c) { return new IPort[]{new DirectionPort(portA,false),new DirectionPort(portB,true)}; });
                 Reverse=new TestEngine(config.Direction(true),delegate(TestConfig c) { return new IPort[]{new DirectionPort(portB,false),new DirectionPort(portA,true)}; });
-            } else Forward=new TestEngine(config.Direction(false));
+            } else Forward=new TestEngine(config.Direction(false), factory);
         }
         public void Start() { coordinator=new Thread(Run) { IsBackground=true,Name="Serial test session" };coordinator.Start(); }
         public void Stop() { Forward.Stop();if(Reverse!=null)Reverse.Stop(); }
@@ -64,8 +48,8 @@ namespace SerialRf {
             bool forwardStarted=false,reverseStarted=false;
             try {
                 if(Config.Bidirectional) {
-                    if(portFactory!=null||Config.Demo) {
-                        IDuplexPort[] pair=portFactory!=null?portFactory(Config):DuplexDemoEndpoint.Pair(true,true);
+                    if(portFactory!=null) {
+                        IDuplexPort[] pair=portFactory(Config);
                         if(pair==null||pair.Length!=2||pair[0]==null||pair[1]==null||ReferenceEquals(pair[0],pair[1]))throw new InvalidOperationException("Two distinct duplex endpoints are required.");
                         portA=pair[0];portB=pair[1];
                     } else {

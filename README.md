@@ -1,23 +1,19 @@
-# Serial Link Tester — Windows GUI for Serial Integrity, Throughput & Latency
+# Serial Port Tester — Windows GUI for Serial Integrity, Throughput & Latency
 
 A free, open-source Windows GUI for testing serial devices and links. Generate
 known binary traffic, detect missing or corrupted packets, and measure goodput,
 latency and jitter from a dark native desktop interface. Run one-way, simultaneous
 bidirectional or round-trip loopback tests — no terminal commands required.
 
-![Tests](https://github.com/galenthas/serial-link-tester/actions/workflows/test.yml/badge.svg)
+![Tests](https://github.com/galenthas/serial-port-tester/actions/workflows/test.yml/badge.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-blue)
 ![Language](https://img.shields.io/badge/language-C%23-lightgrey)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Version](https://img.shields.io/github/v/release/galenthas/serial-link-tester)
+![Version](https://img.shields.io/github/v/release/galenthas/serial-port-tester)
 
 ## Screenshot
 
-![Serial Link Tester — dark Windows interface showing serial link integrity, goodput, latency and jitter](docs/images/screenshot-v1.1.png)
-
-Earlier v1.1 one-way interface. The current release adds simultaneous bidirectional
-results and a separate named serial-warning strip. Values shown are an example
-measurement, not a guaranteed hardware performance specification.
+![Serial Port Tester test settings and bidirectional measurement dashboard](docs/images/serial-port-tester.png)
 
 ## Use Cases
 
@@ -35,19 +31,20 @@ measurement, not a guaranteed hardware performance specification.
 - **Live charts** — select a direction and switch between latency and goodput.
 - **Named warnings** — Framing, Break, Overrun, RX overflow and Parity shown separately from test-stopping errors.
 - **Reports** — comparison HTML, direction-tagged CSV, JSON and individual direction reports.
-- **Demo mode** — explore simulated results without opening a physical COM port.
 - **Portable** — English dark interface and embedded icon; no application installation required.
 
 ## Installation
 
-Download from the [Releases page](https://github.com/galenthas/serial-link-tester/releases/latest):
+Download from the [Releases page](https://github.com/galenthas/serial-port-tester/releases/latest):
 
-- **`SerialLinkTester.exe`** — portable executable.
-- **`SerialLinkTester_vX.Y.Z_Windows.zip`** — executable, English guides, license and SHA-256 manifest.
+- **`SerialPortTester.exe`** — portable executable.
+- **`SerialPortTester_vX.Y.Z_Windows.zip`** — executable, English guides, license and SHA-256 manifest.
+
+Releases before the rename use the filenames `SerialLinkTester.exe` and
+`SerialLinkTester_vX.Y.Z_Windows.zip`.
 
 Requires Windows 10/11, .NET Framework 4.x and the serial adapter's Windows driver.
-Close other applications using the selected ports. Open **Try demo** to explore
-the interface without connected devices.
+Close other applications using the selected ports.
 
 ## Quick Start
 
@@ -107,19 +104,22 @@ Run from PowerShell on Windows. The scripts use the installed .NET Framework
 compiler; no Visual Studio, NuGet packages or external icon tools are required.
 
 ```powershell
-# Compile the application and test executable.
+# Compile the application and test executables.
 .\scripts\build.ps1
 
 # Run the tests against the build selected by version.json.
 $build = & .\scripts\build-config.ps1
 & (Join-Path $build.Verification 'CoreTests.exe') (Join-Path $build.Verification 'test_report')
+& (Join-Path $build.Verification 'UiTests.exe')
 
 # Build, run tests, create the portable ZIP and verify its hashes.
 .\scripts\package.ps1
 ```
 
-Outputs are written under `artifacts/`. CI runs 30 automated tests covering packet
-integrity, accounting, concurrency, shutdown, warnings, failures and reports.
+Outputs are written under `artifacts/`. CI runs 30 core tests covering packet
+integrity, accounting, concurrency, shutdown, warnings, failures and reports, plus
+8 Windows UI tests for metric card layout, live report scrolling, text selection,
+tab/direction changes and a timed bidirectional session. UI test windows run off-screen without activation.
 The transport tests use simulations; they do not validate physical hardware timing
 or cable disconnect/reconnect behavior.
 
@@ -127,7 +127,7 @@ or cable disconnect/reconnect behavior.
 
 | Path | Description |
 |---|---|
-| `scripts/src/MainForm.cs`, `Theme.cs` | WinForms interface and dark controls |
+| `scripts/src/MainForm.cs`, `Theme.cs`, `ReportTextBox.cs` | WinForms interface, dark controls and scroll-preserving report updates |
 | `scripts/src/Protocol.cs` | Packet generation, COBS and CRC checks |
 | `scripts/src/NativeSerial.cs` | Native Windows serial I/O and cancellation |
 | `scripts/src/Engine.cs`, `Session.cs` | Traffic workers and shared-port ownership |
@@ -135,6 +135,7 @@ or cable disconnect/reconnect behavior.
 | `scripts/src/Export*.cs` | HTML, CSV and JSON exports |
 | `scripts/assets/`, `scripts/artwork/` | Icon assets and reproducible artwork generator |
 | `tests/CoreTests.cs` | Automated protocol and transport tests |
+| `tests/UiTests.cs` | Windows report-view and session lifecycle regression tests |
 | `version.json` | Release version and date |
 | `.github/workflows/test.yml` | Windows tests and tag-triggered releases |
 
@@ -144,8 +145,8 @@ Update `version.json`, the changelog and `docs/releases/vX.Y.Z.md`, then tag the
 matching commit:
 
 ```powershell
-git tag v1.3.0
-git push origin v1.3.0
+git tag v1.3.2
+git push origin v1.3.2
 ```
 
 CI checks that the tag matches the version, builds and tests the application,

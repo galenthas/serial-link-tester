@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
-  <title>Serial Link Tester</title>
+  <title>Serial Port Tester</title>
   <rect x="8" y="8" width="240" height="240" rx="56" fill="#0d121a" stroke="#2f3f50" stroke-width="8"/>
   <g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="16">
     <path d="M56 86H182M158 62L182 86L158 110" stroke="#43d8be"/>

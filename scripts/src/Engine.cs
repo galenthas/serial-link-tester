@@ -4,51 +4,6 @@ using System.Diagnostics;
 using System.Threading;
 
 namespace SerialRf {
-    public sealed class DemoPort : IDuplexPort {
-        sealed class Item { public byte[] Data; public long Due; }
-        readonly ConcurrentQueue<Item> queue = new ConcurrentQueue<Item>();
-        readonly AutoResetEvent available = new AutoResetEvent(false);
-        volatile bool readCanceled, writeCanceled;
-        byte[] current; int offset, sequence;
-        readonly bool faults;
-        public DemoPort(bool injectFaults) { faults = injectFaults; }
-        public void Write(byte[] bytes) {
-            if (writeCanceled) throw new OperationCanceledException();
-            sequence++;
-            if (faults && sequence % 29 == 0) return;
-            byte[] data = (byte[])bytes.Clone();
-            if (faults && sequence % 37 == 0) {
-                byte[] raw = Protocol.Decode(data, data.Length - 1);
-                raw[36] ^= 0x40; data = Protocol.Encode(raw);
-            }
-            long due = Stopwatch.GetTimestamp() + (long)((25 + (sequence * 7 % 19)) * Stopwatch.Frequency / 1000.0);
-            queue.Enqueue(new Item { Data = data, Due = due });
-            if (faults && sequence % 41 == 0) queue.Enqueue(new Item { Data = data, Due = due });
-            available.Set();
-        }
-        public int Read(byte[] bytes) {
-            long deadline = Stopwatch.GetTimestamp() + Stopwatch.Frequency / 10;
-            while (!readCanceled) {
-                if (current != null) {
-                    int n = Math.Min(Math.Min(17, bytes.Length), current.Length - offset);
-                    Buffer.BlockCopy(current, offset, bytes, 0, n); offset += n;
-                    if (offset == current.Length) { current = null; offset = 0; }
-                    return n;
-                }
-                Item item;
-                if (queue.TryPeek(out item) && Stopwatch.GetTimestamp() >= item.Due && queue.TryDequeue(out item)) { current = item.Data; continue; }
-                if (Stopwatch.GetTimestamp() >= deadline) return 0;
-                available.WaitOne(2);
-            }
-            return 0;
-        }
-        public uint Errors(out uint input, out uint output) { input = output = 0; return 0; }
-        public void CancelRead() { readCanceled = true; available.Set(); }
-        public void CancelWrite() { writeCanceled = true; }
-        public void Cancel() { CancelRead(); CancelWrite(); }
-        public void Dispose() { available.Dispose(); }
-    }
-
     public sealed class TestEngine : IDisposable {
         public readonly TestConfig Config;
         public readonly Measurement Measure;
@@ -100,12 +55,11 @@ namespace SerialRf {
                 Log(pacer.HighResolution ? "High-resolution transmit timer enabled." : "Standard timer in use; actual throughput may be below the target.");
                 Measure.Phase("Opening ports");
                 if (factory != null) { IPort[] pair = factory(Config); tx = pair[0]; rx = pair[1]; }
-                else if (Config.Demo) { tx = rx = new DemoPort(true); }
                 else {
                     tx = new NativeSerial(Config.TxPort, Config.Baud);
                     rx = Config.Loopback ? tx : new NativeSerial(Config.RxPort, Config.Baud);
                 }
-                Log(Config.Demo ? "DEMO: simulated results. No COM port was opened." : "Ports open • 8N1 • flow control off");
+                Log("Ports open • 8N1 • flow control off");
                 // Let pre-existing bytes drain naturally; do not repeatedly purge device buffers.
                 reader = new Thread(ReadLoop) { IsBackground = true, Name = "Serial test RX", Priority = ThreadPriority.AboveNormal };
                 reader.Start();

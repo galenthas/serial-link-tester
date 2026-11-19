@@ -49,15 +49,17 @@ jobs:
         env:
           VERIFICATION_DIR: ${{ steps.paths.outputs.verification }}
         run: |
-          $log = Join-Path $env:VERIFICATION_DIR 'core_tests.txt'
-          if (Test-Path -LiteralPath $log) {
-            $summary = @('## Test results', '', '```text') + @(Get-Content -LiteralPath $log) + @('```')
-            $summary | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
+          foreach ($name in @('core_tests.txt', 'ui_tests.txt')) {
+            $log = Join-Path $env:VERIFICATION_DIR $name
+            if (Test-Path -LiteralPath $log) {
+              $summary = @("## $name", '', '```text') + @(Get-Content -LiteralPath $log) + @('```')
+              $summary | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
+            }
           }
       - name: Upload portable build and test evidence
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: SerialLinkTester-build
+          name: SerialPortTester-build
           path: ${{ steps.paths.outputs.root }}
           if-no-files-found: error
           retention-days: 14
@@ -76,7 +78,7 @@ jobs:
           ref: ${{ inputs.release_tag || github.ref }}
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: SerialLinkTester-build
+          name: SerialPortTester-build
           path: release-download
       - name: Publish verified portable release
         shell: pwsh
@@ -88,8 +90,8 @@ jobs:
           $build = & .\scripts\build-config.ps1
           if ($env:RELEASE_TAG -ne ('v' + $build.Version)) { throw 'Version/tag mismatch.' }
           $files = @(
-            '.\release-download\app\SerialLinkTester.exe',
-            (Join-Path '.\release-download' ('SerialLinkTester_v' + $build.Version + '_Windows.zip')),
+            '.\release-download\app\SerialPortTester.exe',
+            (Join-Path '.\release-download' ('SerialPortTester_v' + $build.Version + '_Windows.zip')),
             '.\release-download\app\release_manifest.json'
           )
           $checksums = @($files | ForEach-Object {
@@ -98,5 +100,5 @@ jobs:
           $checksumFile = '.\release-download\SHA256SUMS.txt'
           $checksums | Set-Content -LiteralPath $checksumFile -Encoding ascii
           $notes = Join-Path '.\docs\releases' ($env:RELEASE_TAG + '.md')
-          gh release create $env:RELEASE_TAG @files $checksumFile --verify-tag --title ('Serial Link Tester ' + $env:RELEASE_TAG) --notes-file $notes
+          gh release create $env:RELEASE_TAG @files $checksumFile --verify-tag --title ('Serial Port Tester ' + $env:RELEASE_TAG) --notes-file $notes
           if ($LASTEXITCODE -ne 0) { throw 'GitHub Release publication failed.' }

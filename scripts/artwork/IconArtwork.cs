@@ -6,7 +6,7 @@ using System.IO;
 
 public static class IconArtwork {
     public static void Main(string[] args) { Build(args[0]); }
-    // Native vector artwork mirrors assets/SerialLinkTester.svg.
+    // Native vector artwork mirrors assets/SerialPortTester.svg.
     static Bitmap Render(int size) {
         using(Bitmap canvas=new Bitmap(size*4,size*4,PixelFormat.Format32bppArgb)) {
             using(Graphics g=Graphics.FromImage(canvas)) {
@@ -35,9 +35,9 @@ public static class IconArtwork {
         int[] sizes={16,24,32,48,64,128,256};byte[][] pngs=new byte[sizes.Length][];
         for(int i=0;i<sizes.Length;i++)using(Bitmap bitmap=Render(sizes[i]))using(MemoryStream stream=new MemoryStream()) {
             bitmap.Save(stream,ImageFormat.Png);pngs[i]=stream.ToArray();
-            if(sizes[i]==256)bitmap.Save(Path.Combine(directory,"SerialLinkTester.png"),ImageFormat.Png);
+            if(sizes[i]==256)bitmap.Save(Path.Combine(directory,"SerialPortTester.png"),ImageFormat.Png);
         }
-        using(BinaryWriter writer=new BinaryWriter(File.Create(Path.Combine(directory,"SerialLinkTester.ico")))) {
+        using(BinaryWriter writer=new BinaryWriter(File.Create(Path.Combine(directory,"SerialPortTester.ico")))) {
             writer.Write((ushort)0);writer.Write((ushort)1);writer.Write((ushort)sizes.Length);
             int offset=6+16*sizes.Length;
             for(int i=0;i<sizes.Length;i++) {

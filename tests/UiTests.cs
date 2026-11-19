@@ -33,21 +33,15 @@ static class UiTests {
     sealed class TestHost : Form { protected override bool ShowWithoutActivation { get { return true; } } }
     sealed class Fixture : IDisposable {
         readonly TestHost host=new TestHost();
-        // A child panel can exercise windows wider than the CI runner's virtual desktop.
-        readonly Panel canvas=new Panel { Size=new Size(1200,810) };
         public readonly MainForm Form=new MainForm(c => new TestSession(c, config => TestDuplexEndpoint.Pair(false,false)));
         public readonly RichTextBox Details;
         public readonly List<string> Events;
-        public void ResizeWindow(Size size) {
-            canvas.Size=size;Pump(30);
-            Check(Form.ClientSize==size,"requested client size "+size+", actual "+Form.ClientSize);
-        }
         public Fixture() {
             Field<System.Windows.Forms.Timer>(Form,"timer").Stop();
             host.StartPosition=FormStartPosition.Manual;host.Location=new Point(-30000,-30000);
             host.ClientSize=new Size(1200,810);host.ShowInTaskbar=false;
             Form.TopLevel=false;Form.FormBorderStyle=FormBorderStyle.None;Form.Dock=DockStyle.Fill;
-            host.Controls.Add(canvas);canvas.Controls.Add(Form);Form.Show();host.Show();
+            host.Controls.Add(Form);Form.Show();host.Show();
             Details=Field<RichTextBox>(Form,"details");Events=Field<List<string>>(Form,"events");
             TestSession session=new TestSession(new TestConfig { TxPort="COM1",RxPort="COM2" });
             typeof(MainForm).GetField("session",Private).SetValue(Form,session);
@@ -79,6 +73,11 @@ static class UiTests {
             Metric[] cards={Field<Metric>(f.Form,"loss"),Field<Metric>(f.Form,"corrupt"),Field<Metric>(f.Form,"speed"),
                 Field<Metric>(f.Form,"delay"),Field<Metric>(f.Form,"jitter"),Field<Metric>(f.Form,"valid")};
             TableLayoutPanel grid=(TableLayoutPanel)cards[0].Parent;
+            Control body=Field<Panel>(f.Form,"resultsViewport").Parent;
+            int footerHeight=f.Form.ClientSize.Height-body.Height;
+            // WinForms caps a Form's size to the virtual desktop, including embedded forms.
+            // Resize the real settings/results panel directly to exercise wider client areas.
+            body.Dock=DockStyle.None;
             Dictionary<Label,Font> original=new Dictionary<Label,Font>();
             foreach(Metric card in cards)
                 foreach(Label label in new[]{card.Title,card.Value,card.Detail})original.Add(label,label.Font);
@@ -93,7 +92,10 @@ static class UiTests {
                         scaled.Add(font);item.Key.Font=font;
                     }
                     foreach(Size size in new[]{new Size(1200,810),new Size(1024,650),new Size(860,550),new Size(1366,700)}) {
-                        f.ResizeWindow(size);
+                        Size available=new Size(size.Width,size.Height-footerHeight);
+                        body.Size=available;
+                        Pump(30);
+                        Check(body.Size==available,"requested dashboard "+available+", actual "+body.Size);
                         Call(f.Form,"RenderSelected",sample);
                         Pump(20);
                         minColumns=Math.Min(minColumns,grid.ColumnCount);maxColumns=Math.Max(maxColumns,grid.ColumnCount);

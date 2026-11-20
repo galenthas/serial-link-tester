@@ -90,7 +90,7 @@ namespace SerialRf {
         readonly TableLayoutPanel overview=new TableLayoutPanel();
         readonly DarkButton[] directionButtons={new DarkButton(),new DarkButton()};
         readonly Label[,] directionValues=new Label[2,6];
-        readonly Label portLabels=new Label(),loadLabel=new Label();
+        readonly Label txLabel=PairLabel("Transmit port"),rxLabel=PairLabel("Receive port"),loadLabel=new Label();
         RowStyle routeRow;
         int selectedDirection;
         readonly DarkProgress progress = new DarkProgress();
@@ -142,29 +142,26 @@ namespace SerialRf {
             FlowLayoutPanel buttons = new FlowLayoutPanel { Dock=DockStyle.Right,Width=290,FlowDirection=FlowDirection.RightToLeft,WrapContents=false };
             save.Width=145; stop.Width=115; buttons.Controls.Add(save);buttons.Controls.Add(stop);save.Enabled=stop.Enabled=false;
             Panel stateArea=new Panel { Dock=DockStyle.Fill };
-            status.Dock=DockStyle.Top;status.Height=28;status.AutoEllipsis=true;status.Text="Ready · choose ports to start a test";status.TextAlign=ContentAlignment.MiddleLeft;status.Font=new Font("Segoe UI",10,FontStyle.Bold);
+            status.Dock=DockStyle.Top;status.Height=28;status.AutoEllipsis=true;status.ForeColor=Theme.Navy;status.Text="Ready · choose ports to start a test";status.TextAlign=ContentAlignment.MiddleLeft;status.Font=new Font("Segoe UI",10,FontStyle.Bold);
             warningStatus.Dock=DockStyle.Fill;warningStatus.AutoEllipsis=true;warningStatus.TextAlign=ContentAlignment.MiddleLeft;warningStatus.ForeColor=Theme.Muted;warningStatus.Font=new Font("Segoe UI",8.5f);warningStatus.Text="Serial warnings: none observed";
             stateArea.Controls.Add(warningStatus);stateArea.Controls.Add(status);bottom.Controls.Add(stateArea);bottom.Controls.Add(buttons);
             TableLayoutPanel body = new TableLayoutPanel { Dock=DockStyle.Fill,Padding=new Padding(18,15,18,12),ColumnCount=2,RowCount=1 };
             body.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,302));body.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));
             settings = new Panel { Dock=DockStyle.Fill,BackColor=Theme.Surface,Padding=new Padding(17),Margin=new Padding(0,0,12,0),AutoScroll=true };
             TableLayoutPanel fields = new TableLayoutPanel { Dock=DockStyle.Top,AutoSize=true,ColumnCount=1,Padding=new Padding(0,0,0,8) };
+            fields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));
             Label settingTitle=Label("Test settings",14,Theme.Navy);settingTitle.Height=35;fields.Controls.Add(settingTitle);
             tx.AccessibleName="Port A / transmit port";rx.AccessibleName="Port B / receive port";payload.AccessibleName="Payload bytes";seconds.AccessibleName="Duration seconds";load.AccessibleName="Target load per direction";timeout.AccessibleName="Receive timeout";
             setup.Items.AddRange(new object[]{"Two ports / one way","One port / round trip","Two ports / bidirectional"});setup.SelectedIndex=new TestConfig().Bidirectional?2:0;
             mode.Items.AddRange(new object[]{"Latency and jitter","Integrity and throughput"});mode.SelectedIndex=0;
             baud.Items.AddRange(new object[]{"1200","2400","4800","9600","19200","28800","38400","56000","57600","115200","128000","230400","256000","460800","921600"});baud.Text="115200";
             AddField(fields,"Connection setup",setup);
-            TableLayoutPanel ports=new TableLayoutPanel { Dock=DockStyle.Fill,ColumnCount=2,Height=32,Margin=new Padding(0) };
-            ports.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,50));ports.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,50));tx.Margin=new Padding(0,0,6,0);rx.Margin=new Padding(0);ports.Controls.Add(tx);ports.Controls.Add(rx);
-            AddField(fields,"Transmit port                  Receive port",ports,portLabels);
+            AddFieldPair(fields,txLabel,tx,rxLabel,rx);
             refresh.Dock=DockStyle.Top;refresh.Height=29;refresh.Margin=new Padding(0,2,0,4);fields.Controls.Add(refresh);
             AddField(fields,"Baud rate · select or type a value",baud);
             baudNote.Dock=DockStyle.Top;baudNote.Height=33;baudNote.Font=new Font("Segoe UI",8);baudNote.ForeColor=Theme.Muted;fields.Controls.Add(baudNote);
             AddField(fields,"Test mode",mode);
-            TableLayoutPanel sizes=new TableLayoutPanel { Dock=DockStyle.Fill,ColumnCount=2,Height=30,Margin=new Padding(0) };
-            sizes.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,50));sizes.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,50));payload.Margin=new Padding(0,0,6,0);seconds.Margin=new Padding(0);sizes.Controls.Add(payload);sizes.Controls.Add(seconds);
-            AddField(fields,"Payload (bytes)                Duration (s)",sizes);
+            AddFieldPair(fields,PairLabel("Payload (bytes)"),payload,PairLabel("Duration (s)"),seconds);
             AddField(fields,"Target load (%) · throughput mode",load,loadLabel);
             AddField(fields,"Response / final receive window (ms)",timeout);
             note.BackColor=Theme.Field;note.ForeColor=Theme.Navy;note.BorderStyle=BorderStyle.FixedSingle;note.Dock=DockStyle.Fill;note.MaxLength=200;AddField(fields,"Test notes · device / link / conditions",note);
@@ -172,7 +169,7 @@ namespace SerialRf {
             settings.Controls.Add(fields);body.Controls.Add(settings,0,0);
             routeRow=new RowStyle(SizeType.Absolute,62);results.RowStyles.Add(routeRow);results.RowStyles.Add(new RowStyle(SizeType.Absolute,238));results.RowStyles.Add(new RowStyle(SizeType.Percent,100));results.RowStyles.Add(new RowStyle(SizeType.Absolute,45));results.RowStyles.Add(new RowStyle(SizeType.Absolute,24));
             Panel routeArea=new Panel { Dock=DockStyle.Fill };
-            route.Dock=DockStyle.Top;route.Height=51;route.Font=new Font("Segoe UI",10);route.Padding=new Padding(7,4,4,2);
+            route.Dock=DockStyle.Top;route.Height=51;route.ForeColor=Theme.Navy;route.Font=new Font("Segoe UI",10);route.Padding=new Padding(7,4,4,2);
             overview.Dock=DockStyle.Fill;overview.ColumnCount=7;overview.RowCount=3;overview.Padding=new Padding(5,0,5,0);overview.BackColor=Theme.Bg;
             overview.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,108));for(int i=0;i<6;i++)overview.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100f/6));
             overview.RowStyles.Add(new RowStyle(SizeType.Absolute,20));overview.RowStyles.Add(new RowStyle(SizeType.Absolute,29));overview.RowStyles.Add(new RowStyle(SizeType.Absolute,29));
@@ -201,7 +198,7 @@ namespace SerialRf {
             }
             view.Controls.Add(pages);view.Controls.Add(nav);results.Controls.Add(view,0,2);
             scope.Dock=DockStyle.Fill;scope.ForeColor=Theme.Muted;scope.Font=new Font("Segoe UI",8.5f);scope.Padding=new Padding(8,9,2,0);scope.Text="Timing includes Windows, the serial adapter and the link under test.\nJitter = mean absolute difference between consecutive valid packet delays.";results.Controls.Add(scope,0,3);
-            Panel track=new Panel { Dock=DockStyle.Fill,Padding=new Padding(6,3,6,0) };elapsed.Dock=DockStyle.Right;elapsed.Width=220;elapsed.TextAlign=ContentAlignment.MiddleRight;elapsed.Text="0 / 60 s";progress.Dock=DockStyle.Fill;track.Controls.Add(progress);track.Controls.Add(elapsed);results.Controls.Add(track,0,4);
+            Panel track=new Panel { Dock=DockStyle.Fill,Padding=new Padding(6,3,6,0) };elapsed.Dock=DockStyle.Right;elapsed.Width=220;elapsed.ForeColor=Theme.Navy;elapsed.TextAlign=ContentAlignment.MiddleRight;elapsed.Text="0 / 60 s";progress.Dock=DockStyle.Fill;track.Controls.Add(progress);track.Controls.Add(elapsed);results.Controls.Add(track,0,4);
             resultsViewport.Controls.Add(results);body.Controls.Add(resultsViewport,1,0);
             Controls.Add(body);Controls.Add(bottom);
             resultsViewport.ClientSizeChanged += delegate { ArrangeResults(); };
@@ -213,6 +210,24 @@ namespace SerialRf {
             tips.SetToolTip(setup,"Bidirectional runs A to B and B to A at the same time. Both transmit and receive paths must be wired; the link must support simultaneous traffic.");
             tips.SetToolTip(load,"In bidirectional mode, this target applies independently to each direction, not a shared total.");
             tips.SetToolTip(warningStatus,"Amber serial warnings are recorded over the whole test and do not stop it. Red test-stopping errors are shown separately. Details lists warning types and observation counts.");
+        }
+        static Label PairLabel(string text) {
+            return new Label { Text=text,AutoSize=true,Dock=DockStyle.Fill,ForeColor=Theme.Muted,
+                Font=new Font("Segoe UI",9),Margin=new Padding(0,4,0,0) };
+        }
+        static void AddFieldPair(TableLayoutPanel fields,Label leftLabel,Control left,Label rightLabel,Control right) {
+            TableLayoutPanel pair=new TableLayoutPanel { Dock=DockStyle.Top,AutoSize=true,
+                ColumnCount=2,RowCount=2,Margin=Padding.Empty };
+            pair.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,50));
+            pair.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,50));
+            left.Margin=new Padding(0,0,6,0);
+            right.Margin=Padding.Empty;
+            left.Dock=right.Dock=DockStyle.Top;
+            pair.Controls.Add(leftLabel,0,0);
+            pair.Controls.Add(rightLabel,1,0);
+            pair.Controls.Add(left,0,1);
+            pair.Controls.Add(right,1,1);
+            fields.Controls.Add(pair);
         }
         static void AddField(TableLayoutPanel panel,string label,Control control) {
             AddField(panel,label,control,Label(label,9,Theme.Muted));
@@ -230,7 +245,20 @@ namespace SerialRf {
             if(ports.Length==0)status.Text="No COM ports found · connect an adapter and refresh ports";
             UpdateRoute();
         }
-        void Configure() { rx.Enabled=setup.SelectedIndex!=1;load.Enabled=mode.SelectedIndex==1;portLabels.Text=setup.SelectedIndex==2?"Port A                               Port B":"Transmit port                  Receive port";loadLabel.Text=setup.SelectedIndex==2?"Target load (%) · each direction":"Target load (%) · throughput mode";ConfigureBaud();UpdateRoute(); }
+        void Configure() {
+            bool bidirectional=setup.SelectedIndex==2;
+            bool editable=session==null||session.Done;
+            foreach(Control field in new Control[]{setup,tx,refresh,baud,mode,payload,seconds,timeout})
+                field.Enabled=editable;
+            start.Enabled=editable&&!saving;
+            note.ReadOnly=!editable;
+            rx.Enabled=editable && setup.SelectedIndex!=1;
+            load.Enabled=editable && mode.SelectedIndex==1;
+            txLabel.Text=bidirectional?"Port A":"Transmit port";
+            rxLabel.Text=bidirectional?"Port B":"Receive port";
+            loadLabel.Text=bidirectional?"Target load (%) · each direction":"Target load (%) · throughput mode";
+            ConfigureBaud();UpdateRoute();
+        }
         void ConfigureBaud() {
             baudNote.Text="8 data bits · no parity · 1 stop bit\nFlow control off · match both endpoints";
             baudNote.ForeColor=Theme.Muted;
@@ -309,8 +337,8 @@ namespace SerialRf {
             try {
                 TestConfig c=Configuration();c.Validate();
                 if(session!=null)session.Dispose();
-                session=openSession(c);selectedDirection=0;events.Clear();details.Clear();foreach(DirectionView v in directions)v.Reset();directions[0].Chart.Visible=true;directions[1].Chart.Visible=false;directionButtons[0].Selected=true;directionButtons[1].Selected=false;foreach(DarkButton b in directionButtons)b.Invalidate();ConfigureChart();UpdateRoute();nextChart=DateTime.MinValue;finishing=false;
-                settings.Enabled=false;save.Enabled=false;stop.Enabled=true;
+                session=openSession(c);selectedDirection=0;events.Clear();details.Clear();foreach(DirectionView v in directions)v.Reset();directions[0].Chart.Visible=true;directions[1].Chart.Visible=false;directionButtons[0].Selected=true;directionButtons[1].Selected=false;foreach(DarkButton b in directionButtons)b.Invalidate();ConfigureChart();Configure();nextChart=DateTime.MinValue;finishing=false;
+                save.Enabled=false;stop.Enabled=true;
                 status.ForeColor=Theme.Teal;status.Text="Opening ports…";
                 warningStatus.Text="Serial warnings: none observed";warningStatus.ForeColor=Theme.Muted;
                 scope.Text=(c.Bidirectional?"Simultaneous traffic · target load applies to EACH direction.":c.Loopback?"Round-trip latency; do not halve it to claim one-way timing.":"One-way application latency; includes Windows, adapter and link.")+"\n"+(c.Bidirectional?"Each direction includes Windows, adapters and link. Select A → B or B → A for details.":"Jitter = mean absolute delay difference. Throughput mode measures timing under load.");
@@ -344,7 +372,7 @@ namespace SerialRf {
             warningStatus.Text=warningMask==0?"Serial warnings: none observed":"Serial warnings (recorded): "+SerialWarnings.Names(warningMask);
             warningStatus.ForeColor=warningMask==0?Theme.Muted:Theme.Amber;
             if(draw||session.Done&&!finishing)UpdateDetails(s);
-            if(session.Done&&!finishing) { finishing=true;settings.Enabled=true;Configure();save.Enabled=true;stop.Enabled=false; }
+            if(session.Done&&!finishing) { finishing=true;Configure();save.Enabled=true;stop.Enabled=false; }
         }
         void Sample(Snapshot s,int index) {
             DirectionView v=directions[index];double dt=s.Elapsed-v.Elapsed;v.LiveRate=dt>0?(s.GoodPayloadBytes-v.Bytes)*8.0/dt/1000:0;

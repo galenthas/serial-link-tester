@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented here.
 
+## [1.3.4] - 2026-11-20
+
+- Keep settings captions readable on the dark background while a test locks its inputs.
+
+## [1.3.3] - 2026-11-19
+
+- Keep test settings within the visible panel on scaled and compact displays. Align each port, payload and duration label with its input.
+
 ## [1.3.2] - 2026-11-19
 
 - Remove demo mode from the application. Simulated ports are used only in automated tests.

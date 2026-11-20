@@ -17,6 +17,19 @@ static class UiTests {
     static T Field<T>(MainForm form,string name) { return (T)typeof(MainForm).GetField(name,Private).GetValue(form); }
     static void Call(MainForm form,string name,params object[] args) { typeof(MainForm).GetMethod(name,Private).Invoke(form,args); }
     static void Check(bool ok,string message) { if(!ok)throw new Exception(message); }
+    static void CheckCaptionInk(Label label,Color expected) {
+        using(Bitmap pixels=new Bitmap(label.Width,label.Height)) {
+            label.DrawToBitmap(pixels,label.ClientRectangle);
+            int matches=0;
+            for(int y=0;y<pixels.Height;y++) {
+                for(int x=0;x<pixels.Width;x++) {
+                    Color pixel=pixels.GetPixel(x,y);
+                    if(Math.Abs(pixel.R-expected.R)<20 && Math.Abs(pixel.G-expected.G)<20 && Math.Abs(pixel.B-expected.B)<20)matches++;
+                }
+            }
+            Check(matches>=5,label.Text+" did not paint readable caption text");
+        }
+    }
     static Point Position(RichTextBox box) { Point p=new Point();SendMessage(box.Handle,GetScrollPos,IntPtr.Zero,ref p);return p; }
     static void Scroll(RichTextBox box,int y) { Point p=new Point(0,y);SendMessage(box.Handle,SetScrollPos,IntPtr.Zero,ref p); }
     static void Pump(int milliseconds) {
@@ -69,6 +82,40 @@ static class UiTests {
     [STAThread]
     static int Main() {
         Application.EnableVisualStyles();Application.SetCompatibleTextRenderingDefault(false);
+        Test("Settings controls stay inside the visible panel when scaled or scrolled",delegate(Fixture f) {
+            Panel settings=Field<Panel>(f.Form,"settings");
+            Control body=settings.Parent;
+            body.Dock=DockStyle.None;
+            Button start=Field<Button>(f.Form,"start");
+            float previousScale=1f;
+            foreach(float scale in new[]{1f,1.25f,1.5f}) {
+                float change=scale/previousScale;
+                body.Scale(new SizeF(change,change));
+                previousScale=scale;
+                foreach(Size size in new[]{new Size(1200,810),new Size(1000,525)}) {
+                    body.Size=size;
+                    settings.AutoScrollPosition=Point.Empty;
+                    Pump(25);
+                    foreach(string name in new[]{"setup","tx","rx","refresh","baud","mode","payload","seconds","load","timeout","note","start"}) {
+                        Control field=Field<Control>(f.Form,name);
+                        int left=settings.PointToClient(field.PointToScreen(Point.Empty)).X;
+                        int right=left+field.Width;
+                        Check(left>=settings.Padding.Left && right<=settings.ClientSize.Width-settings.Padding.Right,
+                            name+" outside settings at "+size+" scale "+scale+": "+left+".."+right+", panel "+settings.ClientSize.Width);
+                    }
+                    Check(!settings.HorizontalScroll.Visible,"settings require horizontal scrolling");
+                    foreach(string name in new[]{"tx","rx","payload","seconds"}) {
+                        Control field=Field<Control>(f.Form,name);
+                        TableLayoutPanel pair=(TableLayoutPanel)field.Parent;
+                        Control label=pair.GetControlFromPosition(pair.GetColumn(field),0);
+                        Check(label is Label && label.Left==field.Left && label.Bottom<=field.Top,name+" label is misaligned");
+                    }
+                    settings.ScrollControlIntoView(start);
+                    int bottom=settings.PointToClient(start.PointToScreen(new Point(0,start.Height))).Y;
+                    Check(bottom<=settings.ClientSize.Height,"start button unreachable");
+                }
+            }
+        });
         Test("Metric cards fit compact and wide windows with larger text",delegate(Fixture f) {
             Metric[] cards={Field<Metric>(f.Form,"loss"),Field<Metric>(f.Form,"corrupt"),Field<Metric>(f.Form,"speed"),
                 Field<Metric>(f.Form,"delay"),Field<Metric>(f.Form,"jitter"),Field<Metric>(f.Form,"valid")};
@@ -192,6 +239,12 @@ static class UiTests {
             }
             ButtonNamed(f.Form,"Start test").PerformClick();TestSession running=Field<TestSession>(f.Form,"session");
             Check(running!=null&&running.Config.Bidirectional,"test not started");
+            CheckCaptionInk(Field<Label>(f.Form,"txLabel"),Theme.Muted);
+            CheckCaptionInk(Field<Label>(f.Form,"baudNote"),Theme.Muted);
+            foreach(string name in new[]{"setup","tx","rx","refresh","baud","mode","payload","seconds","load","timeout","start"})
+                Check(!Field<Control>(f.Form,name).Enabled,name+" editable during the test");
+            TextBox note=Field<TextBox>(f.Form,"note");
+            Check(!note.Enabled||note.ReadOnly,"notes editable during the test");
             System.Windows.Forms.Timer timer=Field<System.Windows.Forms.Timer>(f.Form,"timer");
             timer.Start();Pump(400);Scroll(f.Details,220);Point before=Position(f.Details);
             Check(before.Y>0,"test report not scrolled");
@@ -200,6 +253,9 @@ static class UiTests {
             while(!Field<bool>(f.Form,"finishing")&&watch.ElapsedMilliseconds<8000);
             Check(running.Done&&Field<bool>(f.Form,"finishing"),"test did not complete");
             Check(running.Forward.Measure.Get().Good>0&&running.Reverse.Measure.Get().Good>0,"test directions did not receive");
+            Check(Field<ComboBox>(f.Form,"rx").Enabled&&!Field<DarkNumber>(f.Form,"load").Enabled,"mode-specific availability lost after test");
+            Check(note.Enabled&&!note.ReadOnly,"notes stayed locked after test");
+            CheckCaptionInk(Field<Label>(f.Form,"txLabel"),Theme.Muted);
             timer.Stop();ButtonNamed(f.Form,"Start test").PerformClick();
             Check(Position(f.Details).Y==0&&f.Details.SelectionLength==0,"new test did not reset report");
         });
